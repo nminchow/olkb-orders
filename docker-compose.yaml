@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  olkb-orders:
+    build:
+      context: .
+    ports:
+      - 8080:8080
+    volumes:
+      - ./olkb-orders-web:/olkb-orders-web
+      - olkb_orders_node_modules:/olkb-orders-web/node_modules
+
+volumes:
+  olkb_orders_node_modules:
