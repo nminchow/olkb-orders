@@ -1,6 +1,0 @@
-functions start
-functions deploy helloPubSub --trigger-topic every_5_minutes
-
-functions call helloPubSub
-functions logs read
-functions stop
