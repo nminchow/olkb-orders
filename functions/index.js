@@ -1,15 +1,9 @@
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
-
-
 const githubContent = require('github-content');
 const sgMail = require('@sendgrid/mail');
-const Octokit = require('@octokit/rest')
-const octokit = new Octokit()
+const Octokit = require('@octokit/rest');
+const octokit = new Octokit();
+const Firestore = require('@google-cloud/firestore');
+const firestore = new Firestore();
 
 function initClient() {
   if (!process.env.SG_KEY) {
@@ -22,25 +16,6 @@ function initClient() {
 
   sgMail.setApiKey(process.env.SG_KEY);
 }
-
-
-// exports.helloPubSub = (event) => {
-//   const message = event.data;
-
-//   var options = {
-//     owner: 'olkb',
-//     repo: 'orders',
-//   };
-
-//   var gc = new githubContent(options);
-
-//   gc.file('README.md', function(err, file) {
-//     if (err) return console.log(err);
-//     console.log(Buffer.from(file.contents, 'base64').toString());
-//   });
-
-//   return;
-// }
 
 exports.queryOrders = async function queryOrders() {
   const cutoff = new Date(new Date() - 60 * 1000 * 5).toISOString();
@@ -72,14 +47,24 @@ exports.queryOrders = async function queryOrders() {
     initClient();
 
     // Make the request to SendGrid's API
-    console.log('sending email');
+    console.log('sending emails');
 
-    const msg = {
-      to: 'noelminchow@gmail.com',
-      from: 'olkb-orders@minc.how',
-      subject: 'OLKB Order Number Updated',
-      text: `The OLKB order status has been updated. \n Current position for order 100007074 is ${orders['100007074']}`,
-    };
-    sgMail.send(msg);
+    firestore.collection('orders').get().then(snapshot => {
+      snapshot.forEach(x => {
+        const { email, orderNumber } = x.data();
+        console.log(`${email} --- ${orderNumber}`)
+        if (orders[orderNumber] == null) return;
+        const msg = {
+          to: email,
+          from: 'olkb-orders@minc.how',
+          templateId: 'd-24c58665e0a143ef85398db046445835',
+          dynamic_template_data: {
+            orderNumber,
+            orderPosition: orders[orderNumber]
+          },
+        };
+        sgMail.send(msg);
+      });
+    });
   });
 }
